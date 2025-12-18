@@ -8,5 +8,6 @@ return {
     divingGearUses = 2,
 
     removeCommand = 'removediver',
+    removeDescription = 'Tirar equipamento de mergulho',
     removeKey = 'L',
 }
