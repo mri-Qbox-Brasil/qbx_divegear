@@ -1,16 +1,21 @@
 {
-    "error": {
-        "not_standing_up": "Você precisa estar em solo firme para colocar isso...",
-        "need_otube": "Você precisa reabastecer seu oxigênio! Pegue um suprimento de ar de reposição!",
-        "underwater": "Você não pode fazer isso debaixo d'água..."
-    },
-    "success": {
-        "took_out": "Você removeu seu equipamento!",
-        "tube_filled": "Você reabasteceu com sucesso seu tanque de ar!"
-    },
-    "info": {
-        "put_suit": "Colocando seu traje de mergulho...",
-        "pullout_suit": "Tirando seu traje de mergulho...",
-        "filling_air": "Reabastecendo ar..."
-    }
+  "error": {
+    "not_standing_up": "Você precisa estar em solo firme para colocar isso...",
+    "need_otube": "Você precisa reabastecer seu oxigênio!",
+    "underwater": "Você não pode fazer isso debaixo d'água...",
+    "already_using": "Você já está usando o equipamento.",
+    "tank_empty": "O tanque está vazio. Encha antes de usar.",
+    "not_using": "Você não está usando o equipamento.",
+    "gear_broken": "Esse equipamento de mergulho está quebrado.",
+    "gear_destroyed": "Seu equipamento de mergulho quebrou."
+  },
+  "success": {
+    "took_out": "Você removeu seu equipamento!",
+    "tube_filled": "Você reabasteceu com sucesso seu tanque de ar!"
+  },
+  "info": {
+    "put_suit": "Colocando seu traje de mergulho...",
+    "pullout_suit": "Tirando seu traje de mergulho...",
+    "filling_air": "Reabastecendo ar..."
+  }
 }

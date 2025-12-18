@@ -22,7 +22,7 @@ end
 
 lib.callback.register('qbx_divegear:client:fillTank', function()
     if IsPedSwimmingUnderWater(cache.ped) then
-        exports.qbx_core:Notify(locale('error.underwater', { oxygenlevel = oxygenLevel }), 'error')
+        exports.qbx_core:Notify(locale('error.underwater'), 'error')
         return false
     end
 
@@ -82,7 +82,7 @@ local function startOxygenThreads()
         while currentGear.enabled do
             if IsPedSwimmingUnderWater(cache.ped) and oxygenLevel > 0 then
                 oxygenLevel -= 1
-                if oxygenLevel == 0 then
+                if oxygenLevel <= 0 then
                     disableScuba()
                 end
             end
@@ -152,24 +152,23 @@ end
 
 RegisterNetEvent('qbx_divegear:client:tryEquip', function(uses)
     if currentGear.enabled then
-        exports.qbx_core:Notify('Você já está usando o equipamento.', 'error')
+        exports.qbx_core:Notify(locale('error.already_using'), 'error')
         return
     end
 
     if oxygenLevel <= 0 then
-        exports.qbx_core:Notify('O tanque está vazio. Encha antes de usar.', 'error')
+        exports.qbx_core:Notify(locale('error.tank_empty'), 'error')
         return
     end
 
     currentGear.uses = uses
-
     TriggerServerEvent('qbx_divegear:server:removeGearItem')
     putOnSuit()
 end)
 
 RegisterCommand(config.removeCommand, function()
     if not currentGear.enabled then
-        exports.qbx_core:Notify('Você não está usando o equipamento.', 'error')
+        exports.qbx_core:Notify(locale('error.not_using'), 'error')
         return
     end
 
@@ -182,4 +181,3 @@ RegisterKeyMapping(
     'keyboard',
     config.removeKey
 )
-

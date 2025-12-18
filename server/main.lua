@@ -12,7 +12,7 @@ exports.qbx_core:CreateUseableItem('diving_gear', function(source)
         TriggerClientEvent(
             'qbx_core:Notify',
             src,
-            'Esse equipamento de mergulho está quebrado.',
+            locale('error.gear_broken'),
             'error'
         )
         return
@@ -33,7 +33,7 @@ RegisterNetEvent('qbx_divegear:server:returnGearItem', function(uses)
         TriggerClientEvent(
             'qbx_core:Notify',
             src,
-            'Seu equipamento de mergulho quebrou.',
+            locale('error.gear_destroyed'),
             'error'
         )
         return
