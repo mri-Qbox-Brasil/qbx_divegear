@@ -3,103 +3,98 @@ local config = require 'config.client'
 local currentGear = {
     mask = 0,
     tank = 0,
-    enabled = false
+    enabled = false,
+    uses = 0,
+    hasTankFilled = false
 }
 
 local oxygenLevel = 0
 
 local function enableScuba()
     SetEnableScuba(cache.ped, true)
-    SetPedMaxTimeUnderwater(cache.ped, 2000.00)
+    SetPedMaxTimeUnderwater(cache.ped, 2000.0)
 end
 
 local function disableScuba()
     SetEnableScuba(cache.ped, false)
-    SetPedMaxTimeUnderwater(cache.ped, 1.00)
+    SetPedMaxTimeUnderwater(cache.ped, 1.0)
 end
 
 lib.callback.register('qbx_divegear:client:fillTank', function()
     if IsPedSwimmingUnderWater(cache.ped) then
-        exports.qbx_core:Notify(locale('error.underwater', {oxygenlevel = oxygenLevel}), 'error')
+        exports.qbx_core:Notify(locale('error.underwater', { oxygenlevel = oxygenLevel }), 'error')
         return false
     end
 
     if lib.progressBar({
         duration = config.refillTankTimeMs,
         label = locale('info.filling_air'),
-        useWhileDead = false,
         canCancel = true,
-        anim = {
-            dict = 'clothingshirt',
-            clip = 'try_shirt_positive_d',
-            blendIn = 8.0
-        }
+        anim = { dict = 'clothingshirt', clip = 'try_shirt_positive_d' }
     }) then
         oxygenLevel = config.startingOxygenLevel
+        currentGear.hasTankFilled = true
         exports.qbx_core:Notify(locale('success.tube_filled'), 'success')
+
         if currentGear.enabled then
             enableScuba()
         end
+
         return true
     end
+
+    return false
 end)
 
 local function deleteGear()
-	if currentGear.mask ~= 0 then
-        DetachEntity(currentGear.mask, false, true)
+    if currentGear.mask ~= 0 then
         DeleteEntity(currentGear.mask)
-		currentGear.mask = 0
+        currentGear.mask = 0
     end
 
-	if currentGear.tank ~= 0 then
-        DetachEntity(currentGear.tank, false, true)
+    if currentGear.tank ~= 0 then
         DeleteEntity(currentGear.tank)
-		currentGear.tank = 0
-	end
+        currentGear.tank = 0
+    end
 end
 
 local function attachGear()
-    local maskModel = `p_d_scuba_mask_s`
-    local tankModel = `p_s_scuba_tank_s`
-    lib.requestModel(maskModel)
-    lib.requestModel(tankModel)
+    lib.requestModel(`p_d_scuba_mask_s`)
+    lib.requestModel(`p_s_scuba_tank_s`)
 
-    currentGear.tank = CreateObject(tankModel, 1.0, 1.0, 1.0, true, true, false)
-    local bone1 = GetPedBoneIndex(cache.ped, 24818)
-    AttachEntityToEntity(currentGear.tank, cache.ped, bone1, -0.25, -0.25, 0.0, 180.0, 90.0, 0.0, true, true, false, false, 2, true)
+    currentGear.tank = CreateObject(`p_s_scuba_tank_s`, 1.0, 1.0, 1.0, true, true, false)
+    AttachEntityToEntity(
+        currentGear.tank, cache.ped, GetPedBoneIndex(cache.ped, 24818),
+        -0.25, -0.25, 0.0, 180.0, 90.0, 0.0,
+        true, true, false, false, 2, true
+    )
 
-    currentGear.mask = CreateObject(maskModel, 1.0, 1.0, 1.0, true, true, false)
-    local bone2 = GetPedBoneIndex(cache.ped, 12844)
-    AttachEntityToEntity(currentGear.mask, cache.ped, bone2, 0.0, 0.0, 0.0, 180.0, 90.0, 0.0, true, true, false, false, 2, true)
+    currentGear.mask = CreateObject(`p_d_scuba_mask_s`, 1.0, 1.0, 1.0, true, true, false)
+    AttachEntityToEntity(
+        currentGear.mask, cache.ped, GetPedBoneIndex(cache.ped, 12844),
+        0.0, 0.0, 0.0, 180.0, 90.0, 0.0,
+        true, true, false, false, 2, true
+    )
 end
 
-local function takeOffSuit()
-    if lib.progressBar({
-        duration = config.takeOffSuitTimeMs,
-        label = locale('info.pullout_suit'),
-        useWhileDead = false,
-        canCancel = true,
-        anim = {
-            dict = 'clothingshirt',
-            clip = 'try_shirt_positive_d',
-            blendIn = 8.0
-        }
-    }) then
-        SetEnableScuba(cache.ped, false)
-        SetPedMaxTimeUnderwater(cache.ped, 50.00)
-        currentGear.enabled = false
-        deleteGear()
-        exports.qbx_core:Notify(locale('success.took_out'))
-        -- Stop breathing suit audio
-    end
-end
+local function startOxygenThreads()
+    CreateThread(function()
+        while currentGear.enabled do
+            if IsPedSwimmingUnderWater(cache.ped) and oxygenLevel > 0 then
+                oxygenLevel -= 1
+                if oxygenLevel == 0 then
+                    disableScuba()
+                end
+            end
+            Wait(1000)
+        end
+    end)
 
-local function startOxygenLevelDrawTextThread()
     CreateThread(function()
         while currentGear.enabled do
             if IsPedSwimmingUnderWater(cache.ped) then
                 qbx.drawText2d({
-                    text = oxygenLevel..'⏱',
+                    text = oxygenLevel .. '⏱',
                     coords = vec2(1.0, 1.42),
                     scale = 0.45
                 })
@@ -109,60 +104,82 @@ local function startOxygenLevelDrawTextThread()
     end)
 end
 
-local function startOxygenLevelDecrementerThread()
-    CreateThread(function()
-        while currentGear.enabled do
-            if IsPedSwimmingUnderWater(cache.ped) and oxygenLevel > 0 then
-                oxygenLevel -= 1
-                if oxygenLevel % 10 == 0 and oxygenLevel ~= config.startingOxygenLevel then
-                    -- Initiate breathing suit audio
-                end
-                if oxygenLevel == 0 then
-                    disableScuba()
-                    -- Stop breathing suit audio
-                end
-            end
-            Wait(1000)
-        end
-    end)
-end
-
 local function putOnSuit()
-    if oxygenLevel <= 0 then
-        exports.qbx_core:Notify(locale('error.need_otube'), 'error')
-        return
-    end
-
     if IsPedSwimming(cache.ped) or cache.vehicle then
         exports.qbx_core:Notify(locale('error.not_standing_up'), 'error')
-        return
+        return false
     end
 
     if lib.progressBar({
         duration = config.putOnSuitTimeMs,
         label = locale('info.put_suit'),
-        useWhileDead = false,
         canCancel = true,
-        anim = {
-            dict = 'clothingshirt',
-            clip = 'try_shirt_positive_d',
-            blendIn = 8.0
-        }
+        anim = { dict = 'clothingshirt', clip = 'try_shirt_positive_d' }
     }) then
         deleteGear()
         attachGear()
         enableScuba()
         currentGear.enabled = true
-        -- Initiate breathing suit audio
-        startOxygenLevelDecrementerThread()
-        startOxygenLevelDrawTextThread()
+        startOxygenThreads()
+        return true
+    end
+
+    return false
+end
+
+local function takeOffSuit()
+    if lib.progressBar({
+        duration = config.takeOffSuitTimeMs,
+        label = locale('info.pullout_suit'),
+        canCancel = true,
+        anim = { dict = 'clothingshirt', clip = 'try_shirt_positive_d' }
+    }) then
+        disableScuba()
+        deleteGear()
+        currentGear.enabled = false
+
+        currentGear.uses -= 1
+
+        if currentGear.uses <= 0 then
+            oxygenLevel = 0
+            currentGear.hasTankFilled = false
+        end
+
+        TriggerServerEvent('qbx_divegear:server:returnGearItem', currentGear.uses)
+        exports.qbx_core:Notify(locale('success.took_out'), 'success')
     end
 end
 
-RegisterNetEvent('qbx_divegear:client:useGear', function()
+RegisterNetEvent('qbx_divegear:client:tryEquip', function(uses)
     if currentGear.enabled then
-        takeOffSuit()
-    else
-        putOnSuit()
+        exports.qbx_core:Notify('Você já está usando o equipamento.', 'error')
+        return
     end
+
+    if oxygenLevel <= 0 then
+        exports.qbx_core:Notify('O tanque está vazio. Encha antes de usar.', 'error')
+        return
+    end
+
+    currentGear.uses = uses
+
+    TriggerServerEvent('qbx_divegear:server:removeGearItem')
+    putOnSuit()
 end)
+
+RegisterCommand(config.removeCommand, function()
+    if not currentGear.enabled then
+        exports.qbx_core:Notify('Você não está usando o equipamento.', 'error')
+        return
+    end
+
+    takeOffSuit()
+end, false)
+
+RegisterKeyMapping(
+    config.removeCommand,
+    config.removeDescription,
+    'keyboard',
+    config.removeKey
+)
+
